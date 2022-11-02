@@ -1,0 +1,27 @@
+#+title: accounting-cli
+
+* Tasks
+** TODO Find suitable parser
+*** Contenders
+- [[https://github.com/Geal/nom][GitHub - Geal/nom: Rust parser combinator framework]]
+- [[https://github.com/tree-sitter/tree-sitter][GitHub - tree-sitter/tree-sitter: An incremental parsing system for programmi...]]
+- [[https://github.com/pest-parser/pest][GitHub - pest-parser/pest: The Elegant Parser]]
+- [[https://github.com/lalrpop/lalrpop][GitHub - lalrpop/lalrpop: LR(1) parser generator for Rust]]
+- [[https://github.com/zesterer/chumsky#philosophy][GitHub - zesterer/chumsky: A parser library for humans with powerful error re...]]
+
+Probably want to use a parser generator
+** TODO Rename project
+** TODO CLI tooling lib
+Make it pretty
+
+* Notes
+
+** Why
+Beancount, ledger, hledger, etc are all targeting a programming niche but fail to accommodate for actual accountants. Maybe should treat "accountant-readable" statements as a priority for the application.
+
+* Links
+- [[https://plaintextaccounting.org/][Plain Text Accounting portal - plaintextaccounting.org]]
+- [[https://depth-first.com/articles/2021/12/16/a-beginners-guide-to-parsing-in-rust/][A Beginner's Guide to Parsing in Rust | Depth-First]]
+- [[https://en.wikipedia.org/wiki/Recursive_descent_parser][Recursive descent parser - Wikipedia]]
+- [[https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form][Extended Backus–Naur form - Wikipedia]]
+- [[https://tratt.net/laurie/blog/2020/which_parsing_approach.html][Laurence Tratt: Which Parsing Approach?]]
