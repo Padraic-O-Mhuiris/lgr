@@ -1,48 +1,31 @@
+#![allow(dead_code, unused)]
+
 use chrono::NaiveDate;
 pub use nom::bytes::complete::tag;
 use nom::{
     bytes::complete::take_while,
-    character::complete::digit1,
-    combinator::map_res,
-    error::{ErrorKind, FromExternalError, ParseError},
+    character::{complete::digit1, is_digit},
+    combinator::{map_res, recognize},
+    error::{ErrorKind, FromExternalError},
+    sequence::tuple,
     IResult,
 };
 
-// fn parse_date(input: &str) -> IResult<&str, &str> {
-//     let parsed_date = input.parse::<NaiveDate>();
-
-//     if parsed_date.is_ok() {
-//         let parsed_date_str = parsed_date.unwrap().to_string();
-
-//         return Ok((&parsed_date_str, &input[..parsed_date_str.len()]));
-//     } else {
-//         let parsed_date_err = parsed_date.unwrap_err();
-
-//         return Err(nom::Err::Error(&parsed_date_err.to_string()));
-//     }
-// }
-
-// fn parse_date<'t>() -> impl Parser<&'t str, NaiveDate, ()> {
-//     move |input: &'t str| match input.parse::<NaiveDate>() {
-//         Ok(tail) => Ok((&input[..tail.to_string().len()], tail)),
-//         Err(_) => Err(nom::Err::Error(())),
-//     }
-// }
-
-fn parse_date<'a, E: FromExternalError<&'a str, chrono::ParseError>>(
-    i: &'a str,
-) -> IResult<&'a str, NaiveDate, E> {
-    take_while(|s: &str| s.parse::<NaiveDate>())(i)
-        s.
+fn parse_date<'a>(i: &'a str) -> IResult<&'a str, NaiveDate> {
+    map_res(
+        recognize(tuple((digit1, tag("-"), digit1, tag("-"), digit1))),
+        |s: &str| s.parse::<NaiveDate>(),
+    )(i)
 }
 
-fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
+fn sp<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
     take_while(move |c| " \t\r\n".contains(c))(i)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let date = "    2021-01-01        ";
 
+    let x = parse_date(date);
     // let (leftover_input, output) = parse_date("1-1-2021")?;
     // println!("parsed: {}", output);
     // println!("unparsed: {}", leftover_input);
@@ -50,20 +33,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[cfg(test)]
-mod tests {
-    use nom::sequence::delimited;
-
-    // Note this useful idiom: importing names from outer (for mod tests) scope.
+mod parser {
     use super::*;
 
     #[test]
+    fn test_sp() {
+        let (_, o) = sp(" ").unwrap();
+        assert_eq!(o, " ");
+    }
+
+    #[test]
     fn test_parse_date() {
-        let mut parser = delimited(sp, parse_date, sp);
-        let date = "    2021-01-01       ";
+        let date = "2021-01-01";
+        let (_, o) = parse_date(date).unwrap();
+        assert_eq!(o, NaiveDate::from_ymd(2021, 1, 1));
+    }
 
-        let (_, parsed) = parser(date).unwrap();
-
-        assert_eq!(parsed.to_string(), "2021-01-01");
-        println!()
+    #[test]
+    fn test_fail_parse_date() {
+        let date = "2021-01-32";
+        let (_, o) = parse_date(date).unwrap();
+        assert_eq!(o, NaiveDate::from_ymd(2021, 1, 1));
     }
 }
