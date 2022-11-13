@@ -1,13 +1,17 @@
-#![allow(dead_code, unused)]
+#![allow(dead_code, unused_imports, unused)]
 
 use chrono::NaiveDate;
 pub use nom::bytes::complete::tag;
 use nom::{
-    bytes::complete::take_while,
-    character::{complete::digit1, is_digit},
-    combinator::{map_res, recognize},
+    bytes::complete::{escaped_transform, take_while},
+    character::{
+        complete::{digit1, none_of},
+        is_digit,
+    },
+    combinator::{map_parser, map_res, recognize},
     error::{ErrorKind, FromExternalError},
-    sequence::tuple,
+    multi::{many0, separated_list0},
+    sequence::{delimited, tuple},
     IResult,
 };
 
@@ -22,6 +26,18 @@ fn sp<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
     take_while(move |c| " \t\r\n".contains(c))(i)
 }
 
+// fn parse_title<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
+//     delimited(tag('"'), ,tag('"'))
+// }
+
+fn parse_quoted(input: &str) -> IResult<&str, String> {
+    let seq = recognize(separated_list0(tag("\"\""), many0(none_of("\""))));
+    let unquote = escaped_transform(none_of("\""), '\"', tag("\""));
+    let res = delimited(tag("\""), map_parser(seq, unquote), tag("\""))(input)?;
+
+    Ok(res)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let date = "    2021-01-01        ";
 
@@ -34,6 +50,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod parser {
+    use nom::{error::ParseError, Err};
+
     use super::*;
 
     #[test]
@@ -52,7 +70,13 @@ mod parser {
     #[test]
     fn test_fail_parse_date() {
         let date = "2021-01-32";
-        let (_, o) = parse_date(date).unwrap();
-        assert_eq!(o, NaiveDate::from_ymd(2021, 1, 1));
+        let err = parse_date(date).unwrap_err();
+        assert_eq!(
+            err,
+            Err() // nom::Err::Error(Err::Error(()){
+                  //     input: "2021-01-32",
+                  //     code: ErrorKind::MapRes
+                  // })
+        );
     }
 }
