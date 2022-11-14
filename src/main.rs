@@ -22,26 +22,35 @@ fn parse_date<'a>(i: &'a str) -> IResult<&'a str, NaiveDate> {
     )(i)
 }
 
-fn sp<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
-    take_while(move |c| " \t\r\n".contains(c))(i)
+fn parse_quoted<'a>(i: &'a str) -> IResult<&'a str, String> {
+    delimited(
+        tag("\""),
+        map_parser(
+            recognize(separated_list0(tag("\"\""), many0(none_of("\"")))),
+            escaped_transform(none_of("\""), '\"', tag("\"")),
+        ),
+        tag("\""),
+    )(i)
 }
 
-// fn parse_title<'a>(i: &'a str) -> IResult<&'a str, &'a str> {
-//     delimited(tag('"'), ,tag('"'))
-// }
+#[derive(Debug)]
+struct TxEntry<'a> {
+    account: &'a str,
+    amount: f64,
+    currency: &'a str,
+    // cost: f64,
+    // cost_currency: &'a str,
+}
 
-fn parse_quoted(input: &str) -> IResult<&str, String> {
-    let seq = recognize(separated_list0(tag("\"\""), many0(none_of("\""))));
-    let unquote = escaped_transform(none_of("\""), '\"', tag("\""));
-    let res = delimited(tag("\""), map_parser(seq, unquote), tag("\""))(input)?;
-
-    Ok(res)
+fn parse_tx_entry<'a>(i: &'a str) -> IResult<&'a str, TxEntry> {
+    todo!()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let date = "    2021-01-01        ";
 
     let x = parse_date(date);
+
     // let (leftover_input, output) = parse_date("1-1-2021")?;
     // println!("parsed: {}", output);
     // println!("unparsed: {}", leftover_input);
@@ -50,15 +59,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod parser {
-    use nom::{error::ParseError, Err};
-
     use super::*;
-
-    #[test]
-    fn test_sp() {
-        let (_, o) = sp(" ").unwrap();
-        assert_eq!(o, " ");
-    }
 
     #[test]
     fn test_parse_date() {
@@ -68,15 +69,16 @@ mod parser {
     }
 
     #[test]
-    fn test_fail_parse_date() {
-        let date = "2021-01-32";
-        let err = parse_date(date).unwrap_err();
-        assert_eq!(
-            err,
-            Err() // nom::Err::Error(Err::Error(()){
-                  //     input: "2021-01-32",
-                  //     code: ErrorKind::MapRes
-                  // })
-        );
+    fn test_parse_quoted() {
+        let s = "\"*(21)\"";
+        let (_, o) = parse_quoted(s).unwrap();
+        assert_eq!(o, "*(21)");
+    }
+
+    #[test]
+    fn test_parse_quoted_failure() {
+        let s = "x\"sssss\"";
+        let res = parse_quoted(s);
+        assert!(res.is_err());
     }
 }
