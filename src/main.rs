@@ -41,103 +41,66 @@
 use std::{num::ParseIntError, str::FromStr};
 
 use nom::{
-    bytes::complete::take,
+    bytes::{complete::take, streaming::tag},
     character::{
         complete::{digit1, one_of, satisfy},
-        is_digit,
+        is_digit, is_hex_digit,
     },
-    combinator::{map_parser, map_res, recognize},
+    combinator::{map, map_parser, map_res, recognize},
     error::{self, ErrorKind, FromExternalError, ParseError},
-    multi::{fold_many1, many1},
-    sequence::terminated,
+    multi::{fold_many1, fold_many_m_n, many1},
+    sequence::{terminated, tuple},
     IResult, Parser,
 };
 
+#[derive(Debug, PartialEq)]
 struct Date {
     year: u32,
-    month: u8,
-    day: u8,
+    month: u32,
+    day: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub enum DateErrorKind {
-    UnparseableYear,
-    InvalidYear,
-    IncorrectFormat,
-    InvalidMonth,
-    InvalidDay,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum LgrError<I> {
-    DateError(DateErrorKind),
-    Nom(I, ErrorKind),
-}
-
-impl<I> ParseError<I> for LgrError<I> {
-    fn from_error_kind(input: I, kind: ErrorKind) -> Self {
-        LgrError::Nom(input, kind)
-    }
-
-    fn append(_: I, _: ErrorKind, other: Self) -> Self {
-        other
+fn parse_numeric<'a>(l: usize) -> impl FnMut(&'a str) -> IResult<&'a str, u32> {
+    move |i: &'a str| {
+        map_res(
+            recognize(fold_many_m_n(
+                l,
+                l,
+                satisfy(|c| c.is_digit(10)),
+                || (),
+                |(), _c| (),
+            )),
+            u32::from_str,
+        )(i)
     }
 }
 
-fn parse_date_yyyy<'a>(i: &'a str) -> IResult<&'a str, u8> {
-    //satisfy(|c: &str| c.len() == 4)(i);
+// fn parse_date<'a>(i: &'a str) -> IResult<&'a str, Date> {
+//     let mut yyyy_parser = parse_numeric(4);
+//     let mut mm_parser = parse_numeric(2);
+//     let mut dd_parser = parse_numeric(2);
 
-    todo!();
-
-    //map_res(map_parser(take(4u8), digit1), |s: &str| s.parse::<u8>())(i)
-}
-
-fn parse_date_mm<'a>(i: &'a str) -> IResult<&'a str, u8> {
-    (map_res(map_parser(take(2u8), digit1), |o: &str| o.parse::<u8>()))(i)
-
-    // let is_valid_month = month > 0 || month <= 12;
-    // if is_valid_month {
-    //     Ok((rest, month))
-    // } else {
-    //     Err(nom::Err::Error(LgrError::DateError(
-    //         DateErrorKind::InvalidMonth,
-    //     )))
-    // }
-
-    // let (rest, o): (&str, &str) = p(i)?;
-
-    // match o.parse::<u8>() {
-    //     Ok(n) => {
-    //         let is_valid_month = n > 0 || n <= 12;
-    //         if is_valid_month {
-    //             Ok((rest, n))
-    //         } else {
-    //         }
-    //     }
-
-    //     Err(e) => Err(nom::Err::Error(nom::error::ParseError::from_error_kind(
-    //         i,
-    //         ErrorKind::Digit,
-    //     ))),
-    // }
-
-    // Ok((rest, o.parse::<u8>()?))
-}
-
-//fn parse_date<'a>(i: &'a str) -> IResult<&'a str, Date, LgrError<&str>> {
-//     let year_parser = map_res(recognize(digit1), i.parse);
-//     todo!()
-// }
-
-// match i.parse::<NaiveDate>() {
-//     Ok(d) => Ok((i, d)),
-//     Err(e) => Err(nom::Err::Error(LgrParserError::DateError(i, e.kind()))),
+//     map_res(
+//         tuple((yyyy_parser, tag("-"), mm_parser, tag("-"), dd_parser)),
+//         |(yyyy, _, mm, _, dd)| {
+//             dbg!(yyyy);
+//             dbg!(mm);
+//             dbg!(dd);
+//             Ok((
+//                 "",
+//                 Date {
+//                     year: yyyy,
+//                     month: mm,
+//                     day: dd,
+//                 },
+//             ))
+//         },
+//     )
 // }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let date = "1000-01-01";
-
-    let res = recognize(many1(terminated(one_of("0123456789"))));
+    let res = parse_numeric(4)(date);
     println!("{:?}", res);
 
     // let (leftover_input, output) = parse_date("1-1-2021")?;
